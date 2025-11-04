@@ -1,0 +1,461 @@
+Generate a full-stack project named iskcon-service-portal that implements an integrated Event & Volunteer Management, Donation & Seva Tracking, and Multi-language Digital Library with per-page PDF translation. Use React (Vite) for the frontend, Node.js + Express for backend APIs (optional; can proxy translation calls), and Firebase for authentication, Firestore database, and file storage. Include a README with all setup and deployment instructions for running locally in VS Code. Ensure the produced code runs from VS Code with npm install and npm run dev (frontend) and npm run start (backend). Provide environment-driven configuration (.env). Use clean, componentized code, good folder structure, and clear comments. Make sure every external API call reads from environment variables.
+
+Design / Tone / Background
+
+The portal is devotional and respectful. Use a calm header: “ISKCON Digital Service Portal — seva, śraddhā, and learning”.
+
+Visual style: saffron (#f39c12) + deep maroon (#7a1f2f) + cream (#fff8ec) with modern minimal cards and generous white/cream space. Use Google Fonts (e.g., Noto Sans or Poppins for headings).
+
+Homepage should show an invocation (two-line devotional sentence) and present three main tiles: Events & Volunteers, Donations & Seva, Digital Library. Below, show a small rotating “Daily Gita Verse” with language toggle.
+
+Keep UI accessible and responsive. Use semantic HTML and ARIA attributes where needed.
+
+Core Features (high level)
+
+Authentication
+
+Firebase Email/Password for Admin and Volunteer accounts.
+
+Role-based access: admin and volunteer. Admins can CRUD events, manage donors, upload books; volunteers can register and log seva.
+
+Event & Volunteer Management
+
+Public event listing page with filter by date, category.
+
+Event detail page with Google Maps embed (venue), schedule, and "Register as Volunteer" button.
+
+Volunteer registration records saved in Firestore (eventId, userId/name, contact, role, timestamp).
+
+Admin view: volunteer lists per event, ability to export CSV.
+
+Donation & Seva Tracking
+
+Donation form (name, email, phone, amount, purpose). Payment integration not required for generation; store donation records in Firestore. Provide receipt generation as downloadable PDF (client-side using jsPDF).
+
+Seva logging page for volunteers to report hours and role for each event (date, hours, role, notes).
+
+Admin dashboard: Charts (Chart.js) for donations by month, seva hours by volunteers, top volunteers.
+
+Digital Library
+
+Upload/download support for PDF and text files (Firebase Storage).
+
+Multi-language metadata (language tag, title, author, description).
+
+Book listing with search, filters (language, category).
+
+PDF reader implemented using pdf.js that renders one page at a time.
+
+Per-page translation: A “Translate Page” button extracts the visible page's selectable text via pdf.js text extraction, sends that text to translation API (LibreTranslate or Google Cloud Translation) and overlays/replaces the page text with the translated text. Works language → language (selectable).
+
+Provide fallback: if PDF is image-only, show a “Request OCR” message (OCR not implemented by default).
+
+Daily Gita Verse
+
+Small API (or JSON file) with verses and translations. Show a random verse on homepage; allow language toggle.
+
+Admin Panel
+
+Event management (create/edit/delete events).
+
+Donation list and export.
+
+Library management (upload/delete books).
+
+User management (promote user to admin).
+
+Common
+
+Global language selector for UI (English + Nepali + Hindi optional).
+
+Theme toggle (light/temple-dark).
+
+Proper error handling, loading states, and mobile responsiveness.
+
+Data model (Firestore)
+
+users (uid, name, email, role, phone, joinedAt)
+
+events (id, title, date, time, venue, address, lat, lng, description, category, createdBy)
+
+registrations (id, eventId, userId, name, contact, role, status, timestamp)
+
+donations (id, donorName, email, amount, date, purpose, note)
+
+sevaLogs (id, userId, eventId, hours, role, date, note)
+
+books (id, title, authors, language, categories, storagePath, description, uploadedBy, createdAt)
+
+verses (id, verseTextEn, verseTextNe, verseTextHi, source)
+
+Frontend structure (React, Vite)
+
+src/
+
+main.jsx (app entry)
+
+App.jsx (routing + layout)
+
+assets/ (images, logo)
+
+styles/ (global.css, variables.css)
+
+components/
+
+Header.jsx, Footer.jsx, Card.jsx, ProtectedRoute.jsx
+
+EventCard.jsx, EventList.jsx, EventDetail.jsx
+
+VolunteerForm.jsx
+
+DonationForm.jsx
+
+LibraryList.jsx, BookCard.jsx, PdfReader.jsx (pdf.js integration)
+
+TranslateOverlay.jsx
+
+Admin/ → Dashboard.jsx, ManageEvents.jsx, ManageBooks.jsx, ManageDonations.jsx
+
+pages/ → Home.jsx, Events.jsx, Library.jsx, Donate.jsx, Seva.jsx, AdminPanel.jsx, Login.jsx, Profile.jsx
+
+hooks/ → useAuth.js, useFirestore.js
+
+utils/ → api.js, fileHelpers.js, translate.js (wrapper for translation)
+
+config/ → firebaseConfig.js (reads from env)
+
+Backend structure (Node + Express) — optional but included
+
+server/
+
+index.js (Express server)
+
+routes/translate.js (secure proxy to translation API; reads API_KEY from env)
+
+routes/admin.js (optional server-side admin tasks)
+
+package.json
+
+If you prefer serverless, these endpoints can be Cloud Functions instead. The codebase should support local Node server for Replit.
+
+Translation integration
+
+Provide two modes in translate.js:
+
+LibreTranslate (public endpoint) for quick demo: POST /translate to https://libretranslate.com/translate. (Read endpoint from env TRANSLATE_URL.)
+
+Google Cloud Translate (recommended for production): use server-side proxy endpoint that calls Google Cloud Translation API. Document how to set GOOGLE_PROJECT_ID and credentials JSON in README.
+
+All translation calls should be proxied via backend to protect keys. For LibreTranslate demo, you may call directly from client but encourage proxy.
+
+PDF per-page translation flow (detailed)
+
+PdfReader.jsx loads PDF via pdf.js and renders current page to canvas plus text layer.
+
+When the user clicks Translate Page, call getPage(currentPage).getTextContent() to extract page text.
+
+Send extracted text to /api/translate (backend) or to LibreTranslate endpoint with source and target languages.
+
+Receive translatedText and render it in TranslateOverlay.jsx positioned over the canvas text layer. Provide options: Overlay (semi-transparent over original), Replace (hide original text layer), or Side-by-side.
+
+Provide a “Restore Original” button.
+
+Accessibility + UX
+
+Buttons have aria-label.
+
+Large readable fonts for scripture text.
+
+Contrast checks for color choices.
+
+Mobile-first breakpoints and touch-friendly buttons.
+
+Package.json (scripts)
+
+Frontend:
+
+dev: vite
+
+build: vite build
+
+preview: vite preview
+
+Backend:
+
+start: node server/index.js
+
+dev: nodemon server/index.js
+
+Add concurrently script to run both in dev if desired.
+
+Environment variables (.env)
+
+VITE_FIREBASE_API_KEY
+
+VITE_FIREBASE_AUTH_DOMAIN
+
+VITE_FIREBASE_PROJECT_ID
+
+VITE_FIREBASE_STORAGE_BUCKET
+
+VITE_FIREBASE_MESSAGING_SENDER_ID
+
+VITE_FIREBASE_APP_ID
+
+TRANSLATE_URL (e.g., LibreTranslate URL)
+
+TRANSLATE_API_KEY (if using paid translator)
+
+GOOGLE_APPLICATION_CREDENTIALS (for server if using GCloud)
+
+PORT (backend)
+
+README (detailed — include in generated project)
+
+Place this content in README.md. (The generator should create it automatically.)
+
+ISKCON Digital Service Portal — README
+Overview
+
+A devotional, lightweight platform for ISKCON centres to manage events, volunteers, donations, and a multi-language digital library. Includes a PDF reader that can translate the currently-viewed page into Nepali (or other languages) on demand.
+
+Tech Stack
+
+Frontend: React (Vite), pdf.js, Chart.js
+
+Backend: Node.js + Express (optional proxy / server)
+
+Database & Auth & Storage: Firebase (Firestore + Auth + Storage)
+
+Translation: LibreTranslate (demo) or Google Cloud Translation API (recommended for production)
+
+Quick setup (local, VS Code)
+
+Clone repository:
+
+git clone <repo-url>
+cd iskcon-service-portal
+
+
+Install dependencies (root runs frontend; server has its own package.json):
+
+cd frontend
+npm install
+cd ../server
+npm install
+cd ..
+
+
+Create .env files:
+
+frontend/.env:
+
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+TRANSLATE_URL=https://libretranslate.com/translate
+
+
+server/.env:
+
+PORT=5000
+TRANSLATE_URL=https://libretranslate.com/translate
+TRANSLATE_API_KEY=           # if required
+GOOGLE_APPLICATION_CREDENTIALS=./gcloud-credentials.json  # if using Google
+
+
+Firebase setup:
+
+Create Firebase project at Firebase Console.
+
+Enable Authentication (Email/Password).
+
+Enable Firestore in test mode for development.
+
+Enable Storage.
+
+(Optional) Create service account for Google Translate and download JSON; put in server/ and set GOOGLE_APPLICATION_CREDENTIALS to relative path.
+
+Copy Firebase config to frontend/.env as VITE_... variables.
+
+Start servers (two shells) from project root:
+
+Frontend:
+
+cd frontend
+npm run dev
+
+
+Backend:
+
+cd server
+npm run dev
+
+
+Or run concurrently if provided: npm run dev:all
+
+Open http://localhost:5173 (Vite default) to view.
+
+Firebase rules (basic)
+
+Provide sample Firestore rules for dev:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    match /registrations/{regId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    match /donations/{doc} {
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+    match /books/{bookId} {
+      allow read: if true;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+  }
+}
+
+
+Adjust rules before production.
+
+Translation notes
+
+LibreTranslate is free and useful for demo; simply set TRANSLATE_URL to its endpoint. For heavy use, register for a paid API or use Google Cloud Translate via server.
+
+The per-page translation works only on text-based PDFs. For scanned PDFs, OCR is required (Tesseract.js integration can be added later).
+
+Deployment
+
+Recommended: deploy frontend to Firebase Hosting or Netlify. Backend can be deployed as Firebase Cloud Functions or to Render / Heroku / Vercel.
+
+For Firebase Hosting + Functions: follow Firebase CLI docs to initialize and deploy.
+
+Folder summary
+
+frontend/ — React app (main UI)
+
+server/ — Node.js API (translation proxy, admin endpoints)
+
+README.md — this file
+
+How to use (quick)
+
+Create admin user in Firebase (via Console) and set role=admin in users collection.
+
+Login as admin → create an event → upload a PDF book.
+
+Public visitors can open library → open PDF → use Translate Page to view current page in Nepali (or selected language).
+
+Troubleshooting
+
+If translations fail, make sure TRANSLATE_URL is correct and backend proxy is running.
+
+If pdf.js fails to render, verify PDF is accessible in Storage and CORS is allowed.
+
+Extra notes to the generator (very important)
+
+Produce complete, runnable code with comments explaining where to place Firebase keys.
+
+Ensure CORS on backend is configured to accept frontend origin during development.
+
+Make the pdf.js integration robust: fall back to showing downloadable link if rendering fails.
+
+Include sample seed data JSON and a simple seed script to populate a few events, verses, and a test book metadata entry.
+
+Create a SAMPLE_ENV.md file showing example values for .env.
+
+Include unit-of-work comments in code so students can easily find where to customize features.
+
+Example UI copy (religious tone) to appear in the site
+
+Header: “ISKCON Digital Service Portal — seva, śraddhā, śikṣā”
+
+Homepage invocation:
+“Om ādi-puruṣāya namaḥ — Welcome. May all work here be for devotional service.”
+
+Event CTA: “Join as a volunteer — become an instrument of prasāda”
+
+Donation CTA: “Offer with love — your gift supports prasāda and seva”
+
+Library: “Scriptures & Teachings — read, reflect, and share”
+
+Translate button: “Translate Page — देख्नुहोस् (नेपालीमा अनुवाद)”
+
+Minimal code & sample snippet for PdfReader.jsx (the generator should produce a full file)
+// PdfReader.jsx (abridged)
+import React, { useEffect, useRef, useState } from 'react';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+import TranslateOverlay from './TranslateOverlay';
+import { translatePageText } from '../utils/translate';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.js`;
+
+export default function PdfReader({ pdfUrl }) {
+  const canvasRef = useRef();
+  const [pdfDoc, setPdfDoc] = useState(null);
+  const [pageNum, setPageNum] = useState(1);
+  const [numPages, setNumPages] = useState(0);
+  const [translated, setTranslated] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const loading = await pdfjsLib.getDocument(pdfUrl).promise;
+      setPdfDoc(loading);
+      setNumPages(loading.numPages);
+      renderPage(loading, pageNum);
+    })();
+  }, [pdfUrl]);
+
+  async function renderPage(pdf, num) {
+    const page = await pdf.getPage(num);
+    const viewport = page.getViewport({ scale: 1.3 });
+    const canvas = canvasRef.current;
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    // Optionally render text layer...
+  }
+
+  async function handleTranslate(targetLang='ne') {
+    const page = await pdfDoc.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const text = textContent.items.map(i => i.str).join(' ');
+    const translation = await translatePageText(text, targetLang); // calls server proxy
+    setTranslated(translation);
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <canvas ref={canvasRef} />
+      <div style={{ marginTop: 10 }}>
+        <button onClick={() => setPageNum(p => Math.max(1, p-1))}>Prev</button>
+        <span>{pageNum} / {numPages}</span>
+        <button onClick={() => setPageNum(p => Math.min(numPages, p+1))}>Next</button>
+        <button onClick={() => handleTranslate('ne')}>Translate Page (नेपाली)</button>
+      </div>
+      {translated && <TranslateOverlay text={translated} onClose={() => setTranslated(null)} />}
+    </div>
+  );
+}
+
+Final words (for the generator)
+
+Keep code modular and well-commented. The goal is a working student project that is easy to understand and extend.
+
+Prioritize: functionality first (events, volunteers, donation, book upload, pdf view + per-page translation), design second (clean, devotional UI).
+
+Provide seed data and a single admin user to test quickly.
